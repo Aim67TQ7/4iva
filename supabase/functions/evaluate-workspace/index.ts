@@ -22,8 +22,14 @@ serve(async (req) => {
     });
 
     const prompt = `As a 5S workplace organization expert, analyze these workplace photos and provide a detailed evaluation. For each of the 5S principles below, provide:
-1. A score from 1-5 (where 1 is poor and 5 is excellent)
+1. A score from 1-10 (where 1 is poor and 10 is excellent)
 2. Specific observations and recommendations
+
+IMPORTANT SCORING RULES:
+- Scores must be whole numbers between 1 and 10
+- The base score is the sum of Sort + Set in Order + Shine scores
+- If the base score is less than 22, Standardize and Sustain scores must be 0
+- If the base score is 22 or higher, provide scores for Standardize and Sustain
 
 Evaluate these principles:
 
@@ -31,36 +37,46 @@ Sort (Seiri):
 - Are unnecessary items removed?
 - Is there clear distinction between needed and unneeded items?
 - Are there items that should be eliminated?
+- Is there a clear red-tag system in place?
+- Is frequency of use considered in storage decisions?
 
 Set in Order (Seiton):
 - Is there a clear place for everything?
 - Are items arranged for easy access and return?
 - Are storage locations clearly marked and labeled?
+- Are shadow boards and visual management systems used effectively?
+- Is item placement optimized based on frequency of use?
 
 Shine (Seiso):
 - Is the area clean and well-maintained?
 - Are equipment and tools in good condition?
-- Are cleaning routines evident?
+- Are cleaning routines evident and documented?
+- Is preventive maintenance being performed?
+- Are cleaning responsibilities clearly assigned?
 
-Standardize (Seiketsu):
+Standardize (Seiketsu) - Only score if base score ≥ 22:
 - Are there clear visual controls and procedures?
 - Are standards documented and visible?
 - Is there consistency across the workspace?
+- Are best practices well-documented and followed?
+- Are regular audits performed to ensure compliance?
 
-Sustain (Shitsuke):
+Sustain (Shitsuke) - Only score if base score ≥ 22:
 - Are there systems to maintain the other 4S principles?
 - Is there evidence of regular audits or checks?
 - Is there a culture of continuous improvement?
+- Is team engagement evident in maintaining standards?
+- Are improvements consistently implemented and tracked?
 
 Base64 encoded photos to analyze: ${processedPhotos.join(', ')}
 
 Respond with valid JSON only, following this exact format:
 {
-  "sortScore": number (1-5),
-  "setInOrderScore": number (1-5),
-  "shineScore": number (1-5),
-  "standardizeScore": number (1-5),
-  "sustainScore": number (1-5),
+  "sortScore": number (1-10),
+  "setInOrderScore": number (1-10),
+  "shineScore": number (1-10),
+  "standardizeScore": number (0 or 1-10, must be 0 if base score < 22),
+  "sustainScore": number (0 or 1-10, must be 0 if base score < 22),
   "feedback": "Detailed feedback string with specific observations and recommendations for each category"
 }`
 
@@ -84,7 +100,7 @@ Respond with valid JSON only, following this exact format:
           role: 'user',
           content: prompt
         }],
-        system: "You are a 5S workplace organization expert. Analyze workplace photos and provide numerical scores and feedback. Always respond in valid JSON format with exactly these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback."
+        system: "You are a 5S workplace organization expert. Analyze workplace photos and provide numerical scores and feedback. Always respond in valid JSON format with exactly these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback. Ensure scores follow the rules: 1-10 range, whole numbers only, and if base score (Sort + Set + Shine) is less than 22, then Standardize and Sustain must be 0."
       })
     })
 
@@ -118,6 +134,13 @@ Respond with valid JSON only, following this exact format:
     if (missingFields.length > 0) {
       console.error("Missing required fields in evaluation:", missingFields);
       throw new Error(`Missing required fields in evaluation: ${missingFields.join(', ')}`);
+    }
+
+    // Enforce scoring rules
+    const baseScore = evaluation.sortScore + evaluation.setInOrderScore + evaluation.shineScore;
+    if (baseScore < 22) {
+      evaluation.standardizeScore = 0;
+      evaluation.sustainScore = 0;
     }
 
     console.log("Evaluation result:", evaluation);
