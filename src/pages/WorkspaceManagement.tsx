@@ -16,7 +16,27 @@ interface Workspace {
 const WorkspaceManagement = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
+  const [companyId, setCompanyId] = useState<string>("");
   const { toast } = useToast();
+
+  const fetchCompanyId = async () => {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id")
+      .limit(1)
+      .single();
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load company",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCompanyId(data.id);
+  };
 
   const fetchWorkspaces = async () => {
     const { data, error } = await supabase
@@ -36,6 +56,7 @@ const WorkspaceManagement = () => {
   };
 
   useEffect(() => {
+    fetchCompanyId();
     fetchWorkspaces();
   }, []);
 
@@ -61,6 +82,10 @@ const WorkspaceManagement = () => {
     fetchWorkspaces();
   };
 
+  if (!companyId) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">Manage Workspaces</h1>
@@ -72,6 +97,7 @@ const WorkspaceManagement = () => {
             setEditingWorkspace(null);
           }}
           workspace={editingWorkspace}
+          companyId={companyId}
         />
       </div>
 
