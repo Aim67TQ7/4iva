@@ -8,6 +8,7 @@ import {
   PolarRadiusAxis,
 } from "recharts";
 import { getAdjustedScores } from "@/utils/scoring";
+import { calculateTotalScore, calculatePercentageScore } from "@/utils/scoring";
 
 interface ScoreDisplayProps {
   scores: Score;
@@ -15,6 +16,8 @@ interface ScoreDisplayProps {
 
 const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
   const adjustedScores = getAdjustedScores(scores);
+  const totalScore = calculateTotalScore(scores);
+  const percentageScore = calculatePercentageScore(totalScore);
   
   const data = [
     { subject: "Sort", score: adjustedScores.sort },
@@ -25,7 +28,11 @@ const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
   ];
 
   return (
-    <div className="w-full h-[300px]">
+    <div className="relative w-full h-[300px]">
+      <div className="absolute top-0 right-0 text-right">
+        <div className="text-2xl font-bold text-blue-600">{percentageScore}%</div>
+        <div className="text-sm text-gray-500">{totalScore}/50</div>
+      </div>
       <ResponsiveContainer>
         <RadarChart 
           data={data} 
