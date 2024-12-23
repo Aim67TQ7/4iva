@@ -1,4 +1,4 @@
-import { Score } from "@/pages/Index";
+import { Score } from "@/types/evaluation";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateTotalScore } from "@/utils/scoring";
 

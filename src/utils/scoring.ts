@@ -1,4 +1,4 @@
-import { Score } from "@/pages/Index";
+import { Score } from "@/types/evaluation";
 
 export const calculateTotalScore = (scores: Score): number => {
   const baseScore = scores.sort + scores.setInOrder + scores.shine;

@@ -22,6 +22,7 @@ interface WorkspaceFormProps {
     location: string | null;
     description: string | null;
   } | null;
+  companyId: string; // Add companyId prop
 }
 
 interface FormValues {
@@ -30,7 +31,7 @@ interface FormValues {
   description: string;
 }
 
-const WorkspaceForm = ({ onSuccess, workspace }: WorkspaceFormProps) => {
+const WorkspaceForm = ({ onSuccess, workspace, companyId }: WorkspaceFormProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -78,13 +79,12 @@ const WorkspaceForm = ({ onSuccess, workspace }: WorkspaceFormProps) => {
           description: "Workspace updated successfully",
         });
       } else {
-        const { error } = await supabase.from("workspaces").insert([
-          {
-            name: values.name,
-            location: values.location || null,
-            description: values.description || null,
-          },
-        ]);
+        const { error } = await supabase.from("workspaces").insert({
+          company_id: companyId,
+          name: values.name,
+          location: values.location || null,
+          description: values.description || null,
+        });
 
         if (error) throw error;
 

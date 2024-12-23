@@ -1,4 +1,4 @@
-import { Score } from "@/pages/Index";
+import { Score } from "@/types/evaluation";
 import {
   RadarChart,
   PolarGrid,
