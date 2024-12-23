@@ -8,6 +8,7 @@ interface PhotoSectionProps {
 }
 
 const PhotoSection = ({ onPhotosChange }: PhotoSectionProps) => {
+  const [photos, setPhotos] = useState<string[]>([]);
   const { toast } = useToast();
 
   const handlePhotoUpload = (base64Photos: string[]) => {
@@ -19,17 +20,20 @@ const PhotoSection = ({ onPhotosChange }: PhotoSectionProps) => {
       });
       return;
     }
+    setPhotos(base64Photos);
     onPhotosChange(base64Photos);
   };
 
   const handleCameraCapture = (photo: string) => {
-    onPhotosChange(prev => [...prev, photo]);
+    const newPhotos = [...photos, photo];
+    setPhotos(newPhotos);
+    onPhotosChange(newPhotos);
   };
 
   return (
     <div className="space-y-4">
       <CameraCapture onPhotoCapture={handleCameraCapture} />
-      <PhotoUpload onUpload={handlePhotoUpload} photos={[]} />
+      <PhotoUpload onUpload={handlePhotoUpload} photos={photos} />
     </div>
   );
 };
