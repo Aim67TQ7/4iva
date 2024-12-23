@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,9 +13,16 @@ serve(async (req) => {
   try {
     const { photos } = await req.json()
     
-    const prompt = `You are a 5S workplace organization expert. Analyze these workplace photos and provide scores from 1-5 for each of the 5S principles (Sort, Set in Order, Shine, Standardize, Sustain) and detailed feedback. Format your response as JSON with these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback.
+    // Limit the number of photos and their size in the prompt
+    const maxPhotos = 4;
+    const processedPhotos = photos.slice(0, maxPhotos).map(photo => {
+      // Extract a smaller portion of the base64 string if it's too long
+      // This is a simple approach - we're just taking the first part of the image
+      const maxLength = 50000; // Adjust this value as needed
+      return photo.length > maxLength ? photo.substring(0, maxLength) : photo;
+    });
 
-Base64 encoded photos to analyze: ${photos.join(', ')}
+    const prompt = `You are a 5S workplace organization expert. Analyze these workplace photos and provide scores from 1-5 for each of the 5S principles (Sort, Set in Order, Shine, Standardize, Sustain) and detailed feedback.
 
 Consider:
 - Sort: Are unnecessary items removed?
@@ -24,6 +30,8 @@ Consider:
 - Shine: Is the area clean and well-maintained?
 - Standardize: Are there clear visual controls and procedures?
 - Sustain: Are there systems to maintain the other 4S principles?
+
+Base64 encoded photos to analyze: ${processedPhotos.join(', ')}
 
 Respond with valid JSON only, following this exact format:
 {
