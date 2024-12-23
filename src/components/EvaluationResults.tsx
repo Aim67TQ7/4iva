@@ -14,6 +14,7 @@ interface EvaluationResultsProps {
 
 const EvaluationResults = ({ scores, workspaceId }: EvaluationResultsProps) => {
   const [workspaceName, setWorkspaceName] = useState<string>("");
+  const hasScores = Object.values(scores).some(score => score > 0);
   
   useEffect(() => {
     const fetchWorkspaceName = async () => {
@@ -33,11 +34,26 @@ const EvaluationResults = ({ scores, workspaceId }: EvaluationResultsProps) => {
     fetchWorkspaceName();
   }, [workspaceId]);
 
+  if (!hasScores) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{workspaceName || "Select a Workspace"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-gray-500">
+            Evaluate a workspace to see results
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>{workspaceName || "Select a Workspace"}</CardTitle>
+          <CardTitle>{workspaceName}</CardTitle>
           <p className="text-sm text-gray-500">
             {format(new Date(), "MMMM d, yyyy")}
           </p>
