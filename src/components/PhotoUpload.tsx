@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface PhotoUploadProps {
   onUpload: (files: File[]) => void;
@@ -20,6 +21,12 @@ const PhotoUpload = ({ onUpload, photos }: PhotoUploadProps) => {
     },
     maxFiles: 4
   });
+
+  const removePhoto = (index: number) => {
+    const newPhotos = [...photos];
+    newPhotos.splice(index, 1);
+    onUpload(newPhotos);
+  };
 
   return (
     <div className="space-y-4">
@@ -40,6 +47,14 @@ const PhotoUpload = ({ onUpload, photos }: PhotoUploadProps) => {
         <div className="grid grid-cols-2 gap-4">
           {photos.map((photo, index) => (
             <Card key={index} className="relative p-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10"
+                onClick={() => removePhoto(index)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
               <img
                 src={URL.createObjectURL(photo)}
                 alt={`Workspace photo ${index + 1}`}
