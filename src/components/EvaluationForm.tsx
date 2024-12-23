@@ -7,6 +7,9 @@ import WorkspaceSelector from "@/components/WorkspaceSelector";
 import CameraCapture from "@/components/CameraCapture";
 import { supabase } from "@/integrations/supabase/client";
 import { Score } from "@/types/evaluation";
+import { Loader2, Save, RefreshCw } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface EvaluationFormProps {
   onEvaluationComplete: (scores: Score) => void;
@@ -117,6 +120,52 @@ const EvaluationForm = ({ onEvaluationComplete, companyId, onWorkspaceSelect }: 
     }
   };
 
+  const handleNewEvaluation = () => {
+    setPhotos([]);
+    setSelectedWorkspace("");
+    onEvaluationComplete({
+      sort: 0,
+      setInOrder: 0,
+      shine: 0,
+      standardize: 0,
+      sustain: 0,
+    });
+  };
+
+  const handleSavePDF = async () => {
+    const element = document.getElementById('evaluation-results');
+    if (!element) {
+      toast({
+        title: "Error",
+        description: "No evaluation results to save",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const canvas = await html2canvas(element);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF();
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('workspace-evaluation.pdf');
+
+      toast({
+        title: "Success",
+        description: "Evaluation saved as PDF",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -132,13 +181,40 @@ const EvaluationForm = ({ onEvaluationComplete, companyId, onWorkspaceSelect }: 
         />
         <CameraCapture onPhotoCapture={handleCameraCapture} />
         <PhotoUpload onUpload={handlePhotoUpload} photos={photos} />
-        <Button
-          onClick={handleEvaluate}
-          className="w-full"
-          disabled={!selectedWorkspace || photos.length === 0 || isEvaluating}
-        >
-          {isEvaluating ? "Evaluating..." : "Evaluate Workspace"}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            onClick={handleEvaluate}
+            className="w-full"
+            disabled={!selectedWorkspace || photos.length === 0 || isEvaluating}
+          >
+            {isEvaluating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Evaluating...
+              </>
+            ) : (
+              "Evaluate Workspace"
+            )}
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={handleSavePDF}
+              variant="outline"
+              className="w-full"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Save to PDF
+            </Button>
+            <Button
+              onClick={handleNewEvaluation}
+              variant="outline"
+              className="w-full"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              New Evaluation
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

@@ -5,6 +5,7 @@ import {
   PolarAngleAxis,
   Radar,
   ResponsiveContainer,
+  PolarRadiusAxis,
 } from "recharts";
 import { getAdjustedScores } from "@/utils/scoring";
 
@@ -34,6 +35,11 @@ const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
           <PolarGrid />
           <PolarAngleAxis 
             dataKey="subject" 
+            tick={{ fill: '#64748b' }}
+          />
+          <PolarRadiusAxis
+            angle={90}
+            domain={[0, 10]}
             tick={{ fill: '#64748b' }}
           />
           <Radar
