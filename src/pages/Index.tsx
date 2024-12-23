@@ -23,12 +23,21 @@ const Index = () => {
         .from("companies")
         .select("id")
         .eq("name", "n0v8v")
-        .single();
+        .maybeSingle();
 
       if (error) {
         toast({
           title: "Error",
           description: "Failed to fetch company information",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data) {
+        toast({
+          title: "Error",
+          description: "Default company not found",
           variant: "destructive",
         });
         return;

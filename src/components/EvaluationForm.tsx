@@ -10,9 +10,11 @@ import { Score } from "@/types/evaluation";
 
 interface EvaluationFormProps {
   onEvaluationComplete: (scores: Score) => void;
+  companyId: string;
+  onWorkspaceSelect: (workspaceId: string) => void;
 }
 
-const EvaluationForm = ({ onEvaluationComplete }: EvaluationFormProps) => {
+const EvaluationForm = ({ onEvaluationComplete, companyId, onWorkspaceSelect }: EvaluationFormProps) => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -87,6 +89,7 @@ const EvaluationForm = ({ onEvaluationComplete }: EvaluationFormProps) => {
 
       const { error: dbError } = await supabase.from("evaluations").insert({
         workspace_id: selectedWorkspace,
+        company_id: companyId,
         photos: photos,
         sort_score: evaluation.sortScore || null,
         set_order_score: evaluation.setInOrderScore || null,
@@ -100,6 +103,7 @@ const EvaluationForm = ({ onEvaluationComplete }: EvaluationFormProps) => {
       if (dbError) throw dbError;
 
       onEvaluationComplete(scores);
+      onWorkspaceSelect(selectedWorkspace);
 
       toast({
         title: "Evaluation Complete",
@@ -123,7 +127,10 @@ const EvaluationForm = ({ onEvaluationComplete }: EvaluationFormProps) => {
         <CardTitle>Workspace Selection & Photo Capture</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <WorkspaceSelector onSelect={setSelectedWorkspace} />
+        <WorkspaceSelector onSelect={(id) => {
+          setSelectedWorkspace(id);
+          onWorkspaceSelect(id);
+        }} />
         <CameraCapture onPhotoCapture={handleCameraCapture} />
         <PhotoUpload onUpload={handlePhotoUpload} photos={photos} />
         <Button
