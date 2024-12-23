@@ -25,6 +25,7 @@ Consider:
 - Standardize: Are there clear visual controls and procedures?
 - Sustain: Are there systems to maintain the other 4S principles?`
 
+    console.log("Sending request to Claude API...");
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -43,19 +44,24 @@ Consider:
       })
     })
 
+    console.log("Received response from Claude API");
     const result = await response.json()
     
     if (!response.ok) {
+      console.error("Claude API error:", result);
       throw new Error('Failed to evaluate workspace')
     }
 
+    console.log("Parsing Claude response...");
     const evaluation = JSON.parse(result.content[0].text)
+    console.log("Evaluation result:", evaluation);
 
     return new Response(
       JSON.stringify(evaluation),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error("Function error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
