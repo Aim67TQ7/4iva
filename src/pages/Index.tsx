@@ -15,39 +15,73 @@ const Index = () => {
   });
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [companyId, setCompanyId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchDefaultCompany = async () => {
-      const { data, error } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("name", "n0v8v")
-        .maybeSingle();
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("name", "n0v8v")
+          .maybeSingle();
 
-      if (error) {
+        if (error) {
+          console.error("Error fetching company:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch company information",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (!data) {
+          console.error("Company 'n0v8v' not found");
+          toast({
+            title: "Error",
+            description: "Default company not found",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log("Company found:", data);
+        setCompanyId(data.id);
+      } catch (error) {
+        console.error("Unexpected error:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch company information",
+          description: "An unexpected error occurred",
           variant: "destructive",
         });
-        return;
+      } finally {
+        setIsLoading(false);
       }
-
-      if (!data) {
-        toast({
-          title: "Error",
-          description: "Default company not found",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setCompanyId(data.id);
     };
 
     fetchDefaultCompany();
   }, [toast]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!companyId) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-red-500">
+          Error: Company not found. Please ensure the default company exists in the database.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
