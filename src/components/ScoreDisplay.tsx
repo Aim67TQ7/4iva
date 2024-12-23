@@ -26,7 +26,11 @@ const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
   return (
     <div className="w-full h-[300px]">
       <ResponsiveContainer>
-        <RadarChart data={data} startAngle={90} endAngle={-270}>
+        <RadarChart 
+          data={data} 
+          startAngle={90} 
+          endAngle={-270}
+        >
           <PolarGrid />
           <PolarAngleAxis 
             dataKey="subject" 
@@ -38,6 +42,7 @@ const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
             stroke="#2563eb"
             fill="#2563eb"
             fillOpacity={0.6}
+            domain={[0, 10]} // Set the domain to match our 1-10 scale
           />
         </RadarChart>
       </ResponsiveContainer>
