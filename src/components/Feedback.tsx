@@ -18,10 +18,10 @@ const Feedback = ({ scores }: FeedbackProps) => {
       category: "Sort",
       score: scores.sort,
       comment: scores.sort >= 4 ? 
-        "Excellent organization with minimal unnecessary items." :
+        "Excellent organization with clear distinction between necessary and unnecessary items. All items have clear purpose and frequency of use is considered." :
         scores.sort >= 3 ?
-        "Good sorting, but some unnecessary items remain." :
-        "Significant improvement needed in removing unnecessary items."
+        "Workspace shows basic organization but needs improvement. Some unnecessary items remain and the distinction between needed and unneeded items could be clearer. Consider implementing a red tag system for questionable items." :
+        "Critical improvement needed in sorting. Many unnecessary items present, creating clutter and inefficiency. Implement immediate sorting process with clear criteria for keeping or removing items based on necessity and frequency of use."
     });
 
     // Set in Order feedback
@@ -29,10 +29,10 @@ const Feedback = ({ scores }: FeedbackProps) => {
       category: "Set in Order",
       score: scores.setInOrder,
       comment: scores.setInOrder >= 4 ?
-        "Items are very well organized and easily accessible." :
+        "Outstanding organization with clear visual management system. Items are perfectly positioned for efficiency with excellent labeling and space optimization." :
         scores.setInOrder >= 3 ?
-        "Decent organization, but some items could be better arranged." :
-        "Items need better organization and arrangement."
+        "Basic organization is present but could be improved. Consider implementing shadow boards, clearer labels, and optimizing item placement based on frequency of use. Some items are not in their optimal locations." :
+        "Significant organization improvements needed. Items lack proper placement strategy, labels are missing or unclear, and workflow efficiency is compromised. Implement immediate space planning and visual management systems."
     });
 
     // Shine feedback
@@ -40,10 +40,10 @@ const Feedback = ({ scores }: FeedbackProps) => {
       category: "Shine",
       score: scores.shine,
       comment: scores.shine >= 4 ?
-        "Workspace is exceptionally clean and well-maintained." :
+        "Exceptional cleanliness standards maintained. Equipment is well-maintained, surfaces are spotless, and regular cleaning protocols are evident and documented." :
         scores.shine >= 3 ?
-        "Workspace is generally clean but needs some attention." :
-        "Cleanliness needs significant improvement."
+        "Acceptable cleanliness but room for improvement. Some areas show signs of neglect, and cleaning protocols may not be consistently followed. Consider implementing daily cleaning checklists and maintenance schedules." :
+        "Urgent attention needed for cleanliness. Multiple areas show dirt, dust, or debris. Equipment maintenance is lacking. Implement immediate cleaning standards and create detailed cleaning schedules with assigned responsibilities."
     });
 
     // Standardize feedback
@@ -51,10 +51,10 @@ const Feedback = ({ scores }: FeedbackProps) => {
       category: "Standardize",
       score: scores.standardize,
       comment: scores.standardize >= 4 ?
-        "Excellent standardization with clear procedures." :
+        "Excellent standardization with clear, documented procedures. Visual controls are effective and consistently maintained. Best practices are well-documented and followed." :
         scores.standardize >= 3 ?
-        "Good standards in place but room for improvement." :
-        "Better standardization procedures needed."
+        "Basic standards exist but need strengthening. Some procedures are unclear or inconsistently followed. Enhance visual controls and ensure all procedures are documented and accessible." :
+        "Standardization is severely lacking. Few or no documented procedures exist. Create comprehensive standard operating procedures and implement visual management systems."
     });
 
     // Sustain feedback
@@ -62,10 +62,10 @@ const Feedback = ({ scores }: FeedbackProps) => {
       category: "Sustain",
       score: scores.sustain,
       comment: scores.sustain >= 4 ?
-        "Strong sustainability practices in place." :
+        "Strong sustainability practices with regular audits and continuous improvement culture. Team engagement is high and improvements are regularly implemented." :
         scores.sustain >= 3 ?
-        "Decent sustainability but needs more consistency." :
-        "Sustainability practices need significant improvement."
+        "Basic sustainability measures exist but need reinforcement. Audit processes are inconsistent. Strengthen regular audits and increase team engagement in maintaining standards." :
+        "Sustainability measures are inadequate. Implement regular audit schedules, create accountability systems, and develop team engagement strategies for maintaining 5S standards."
     });
 
     return feedback;
@@ -73,13 +73,13 @@ const Feedback = ({ scores }: FeedbackProps) => {
 
   const getSummaryFeedback = () => {
     if (totalScore >= 21) {
-      return "Excellent work! Your workspace demonstrates strong adherence to 5S principles. Keep maintaining these high standards.";
+      return "Excellent work! Your workspace demonstrates strong adherence to 5S principles. Focus on maintaining these high standards and look for opportunities for continuous improvement.";
     } else if (totalScore >= 16) {
-      return "Good progress! There's room for improvement, but you're on the right track. Focus on areas with lower scores.";
+      return "Good progress, but there's room for improvement. Focus particularly on areas scoring below 4, and develop specific action plans to address these gaps. Consider implementing more visual management systems and standardized procedures.";
     } else if (totalScore >= 11) {
-      return "Your workspace needs significant improvements. Review each principle and create an action plan.";
+      return "Your workspace needs significant improvements. Start by focusing on the first 3S principles (Sort, Set in Order, Shine) to build a strong foundation. Create detailed action plans with specific timelines and responsibilities.";
     } else {
-      return "Immediate action is required. Consider implementing 5S principles from the ground up.";
+      return "Immediate action required. Begin with a thorough sorting process to remove unnecessary items, then focus on organizing remaining items and establishing basic cleaning standards. Document all improvements and create specific action plans for each area.";
     }
   };
 

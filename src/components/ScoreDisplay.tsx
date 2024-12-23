@@ -13,23 +13,13 @@ interface ScoreDisplayProps {
 }
 
 const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
-  const adjustedScores = getAdjustedScores(scores);
-  
-  // Ensure all scores are between 0 and 5
-  const normalizedScores = {
-    sort: Math.min(5, Math.max(0, adjustedScores.sort)),
-    setInOrder: Math.min(5, Math.max(0, adjustedScores.setInOrder)),
-    shine: Math.min(5, Math.max(0, adjustedScores.shine)),
-    standardize: Math.min(5, Math.max(0, adjustedScores.standardize)),
-    sustain: Math.min(5, Math.max(0, adjustedScores.sustain)),
-  };
-
+  // Use the raw scores directly without normalization
   const data = [
-    { subject: "Sort", score: normalizedScores.sort },
-    { subject: "Set in Order", score: normalizedScores.setInOrder },
-    { subject: "Shine", score: normalizedScores.shine },
-    { subject: "Standardize", score: normalizedScores.standardize },
-    { subject: "Sustain", score: normalizedScores.sustain },
+    { subject: "Sort", score: scores.sort },
+    { subject: "Set in Order", score: scores.setInOrder },
+    { subject: "Shine", score: scores.shine },
+    { subject: "Standardize", score: scores.standardize },
+    { subject: "Sustain", score: scores.sustain },
   ];
 
   return (
