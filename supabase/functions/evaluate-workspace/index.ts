@@ -23,14 +23,29 @@ Consider:
 - Set in Order: Is there a clear place for everything?
 - Shine: Is the area clean and well-maintained?
 - Standardize: Are there clear visual controls and procedures?
-- Sustain: Are there systems to maintain the other 4S principles?`
+- Sustain: Are there systems to maintain the other 4S principles?
+
+Respond with valid JSON only, following this exact format:
+{
+  "sortScore": number,
+  "setInOrderScore": number,
+  "shineScore": number,
+  "standardizeScore": number,
+  "sustainScore": number,
+  "feedback": string
+}`
 
     console.log("Sending request to Claude API...");
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY is not set');
+    }
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') ?? '',
+        'x-api-key': anthropicApiKey,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
@@ -40,20 +55,42 @@ Consider:
           role: 'user',
           content: prompt
         }],
-        system: "You are a 5S workplace organization expert. Analyze workplace photos and provide numerical scores and feedback. Always respond in valid JSON format."
+        system: "You are a 5S workplace organization expert. Analyze workplace photos and provide numerical scores and feedback. Always respond in valid JSON format with exactly these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback."
       })
     })
 
     console.log("Received response from Claude API");
     const result = await response.json()
+    console.log("Claude API raw response:", result);
     
     if (!response.ok) {
       console.error("Claude API error:", result);
-      throw new Error('Failed to evaluate workspace')
+      throw new Error(`Claude API error: ${result.error?.message || 'Unknown error'}`)
+    }
+
+    if (!result.content || !result.content[0] || !result.content[0].text) {
+      console.error("Invalid Claude API response format:", result);
+      throw new Error('Invalid response format from Claude API');
     }
 
     console.log("Parsing Claude response...");
-    const evaluation = JSON.parse(result.content[0].text)
+    let evaluation;
+    try {
+      evaluation = JSON.parse(result.content[0].text);
+    } catch (parseError) {
+      console.error("Failed to parse Claude response as JSON:", result.content[0].text);
+      throw new Error('Failed to parse evaluation result as JSON');
+    }
+
+    // Validate the evaluation object has all required fields
+    const requiredFields = ['sortScore', 'setInOrderScore', 'shineScore', 'standardizeScore', 'sustainScore', 'feedback'];
+    const missingFields = requiredFields.filter(field => !(field in evaluation));
+    
+    if (missingFields.length > 0) {
+      console.error("Missing required fields in evaluation:", missingFields);
+      throw new Error(`Missing required fields in evaluation: ${missingFields.join(', ')}`);
+    }
+
     console.log("Evaluation result:", evaluation);
 
     return new Response(
@@ -63,8 +100,14 @@ Consider:
   } catch (error) {
     console.error("Function error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: error.message || 'Failed to evaluate workspace',
+        details: error.toString()
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 500 
+      }
     )
   }
 })
