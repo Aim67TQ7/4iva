@@ -127,10 +127,13 @@ const EvaluationForm = ({ onEvaluationComplete, companyId, onWorkspaceSelect }: 
         <CardTitle>Workspace Selection & Photo Capture</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <WorkspaceSelector onSelect={(id) => {
-          setSelectedWorkspace(id);
-          onWorkspaceSelect(id);
-        }} />
+        <WorkspaceSelector 
+          onSelect={(id) => {
+            setSelectedWorkspace(id);
+            onWorkspaceSelect(id);
+          }} 
+          companyId={companyId}
+        />
         <CameraCapture onPhotoCapture={handleCameraCapture} />
         <PhotoUpload onUpload={handlePhotoUpload} photos={photos} />
         <Button

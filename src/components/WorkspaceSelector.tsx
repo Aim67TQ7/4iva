@@ -17,19 +17,27 @@ interface Workspace {
 
 interface WorkspaceSelectorProps {
   onSelect: (workspaceId: string) => void;
+  companyId?: string;
 }
 
-const WorkspaceSelector = ({ onSelect }: WorkspaceSelectorProps) => {
+const WorkspaceSelector = ({ onSelect, companyId }: WorkspaceSelectorProps) => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
+      if (!companyId) {
+        console.log("No company ID provided to WorkspaceSelector");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("workspaces")
-        .select("id, name, location");
+        .select("id, name, location")
+        .eq("company_id", companyId);
 
       if (error) {
+        console.error("Error fetching workspaces:", error);
         toast({
           title: "Error",
           description: "Failed to load workspaces",
@@ -38,24 +46,22 @@ const WorkspaceSelector = ({ onSelect }: WorkspaceSelectorProps) => {
         return;
       }
 
-      // Sort workspaces to put "Misc" first
-      const sortedWorkspaces = data.sort((a, b) => {
-        if (a.name === "Misc") return -1;
-        if (b.name === "Misc") return 1;
-        return a.name.localeCompare(b.name);
-      });
-
-      setWorkspaces(sortedWorkspaces);
-
-      // Set Misc as default if it exists
-      const miscWorkspace = sortedWorkspaces.find(w => w.name === "Misc");
-      if (miscWorkspace) {
-        onSelect(miscWorkspace.id);
+      if (!data || data.length === 0) {
+        console.log("No workspaces found for company:", companyId);
+        toast({
+          title: "No Workspaces",
+          description: "No workspaces found for this company",
+        });
+        return;
       }
+
+      // Sort workspaces alphabetically
+      const sortedWorkspaces = data.sort((a, b) => a.name.localeCompare(b.name));
+      setWorkspaces(sortedWorkspaces);
     };
 
     fetchWorkspaces();
-  }, [toast, onSelect]);
+  }, [toast, companyId]);
 
   return (
     <div className="space-y-2">
