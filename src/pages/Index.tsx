@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import Feedback from "@/components/Feedback";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 import TrendsChart from "@/components/TrendsChart";
 import { supabase } from "@/integrations/supabase/client";
+import { convertToBase64, compressImage } from "@/utils/imageUtils";
 
 export type Score = {
   sort: number;
@@ -19,7 +20,7 @@ export type Score = {
 };
 
 const Index = () => {
-  const [photos, setPhotos] = useState<File[]>([]);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [scores, setScores] = useState<Score>({
     sort: 0,
     setInOrder: 0,
@@ -31,11 +32,11 @@ const Index = () => {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isUsingFrontCamera, setIsUsingFrontCamera] = useState(false);
-  const videoRef = useState<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
-  const handlePhotoUpload = (files: File[]) => {
-    if (files.length > 4) {
+  const handlePhotoUpload = (base64Photos: string[]) => {
+    if (base64Photos.length > 4) {
       toast({
         title: "Too many photos",
         description: "Please upload a maximum of 4 photos",
@@ -43,7 +44,7 @@ const Index = () => {
       });
       return;
     }
-    setPhotos(files);
+    setPhotos(base64Photos);
   };
 
   const handleEvaluate = async () => {
@@ -67,31 +68,13 @@ const Index = () => {
 
     setIsEvaluating(true);
     try {
-      // Upload photos to Supabase Storage
-      const photoUrls = await Promise.all(
-        photos.map(async (photo) => {
-          const fileName = `${crypto.randomUUID()}-${photo.name}`;
-          const { data, error } = await supabase.storage
-            .from("workspace_photos")
-            .upload(fileName, photo);
-
-          if (error) throw error;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from("workspace_photos")
-            .getPublicUrl(fileName);
-
-          return publicUrl;
-        })
-      );
-
-      // Call the evaluate-workspace function
+      // Call the evaluate-workspace function with base64 photos
       const response = await fetch("/api/evaluate-workspace", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ photoUrls }),
+        body: JSON.stringify({ photos }),
       });
 
       if (!response.ok) {
@@ -100,7 +83,6 @@ const Index = () => {
 
       const evaluation = await response.json();
 
-      // Update scores
       setScores({
         sort: evaluation.sortScore,
         setInOrder: evaluation.setInOrderScore,
@@ -109,16 +91,14 @@ const Index = () => {
         sustain: evaluation.sustainScore,
       });
 
-      // Calculate total score
       const totalScore = Object.values(evaluation).reduce(
         (acc: number, score: number) => acc + (typeof score === "number" ? score : 0),
         0
       );
 
-      // Save evaluation to database
       const { error: dbError } = await supabase.from("evaluations").insert({
         workspace_id: selectedWorkspace,
-        photos: photoUrls,
+        photos,
         sort_score: evaluation.sortScore,
         set_order_score: evaluation.setInOrderScore,
         shine_score: evaluation.shineScore,
@@ -177,7 +157,7 @@ const Index = () => {
     startCamera();
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
@@ -185,12 +165,9 @@ const Index = () => {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            setPhotos(prev => [...prev, file]);
-          }
-        }, 'image/jpeg');
+        const base64Image = canvas.toDataURL('image/jpeg');
+        const compressedImage = await compressImage(base64Image);
+        setPhotos(prev => [...prev, compressedImage]);
       }
     }
   };

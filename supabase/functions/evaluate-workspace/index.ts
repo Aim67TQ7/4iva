@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { photoUrls } = await req.json()
+    const { photos } = await req.json()
     
     const prompt = `You are a 5S workplace organization expert. Analyze these workplace photos and provide scores from 1-5 for each of the 5S principles (Sort, Set in Order, Shine, Standardize, Sustain) and detailed feedback. Format your response as JSON with these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback.
 
-Photo URLs to analyze: ${photoUrls.join(', ')}
+Base64 encoded photos to analyze: ${photos.join(', ')}
 
 Consider:
 - Sort: Are unnecessary items removed?
@@ -49,7 +49,6 @@ Consider:
       throw new Error('Failed to evaluate workspace')
     }
 
-    // Parse the JSON response from Claude
     const evaluation = JSON.parse(result.content[0].text)
 
     return new Response(

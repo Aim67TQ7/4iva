@@ -3,23 +3,58 @@ import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { validateImageSize, convertToBase64, compressImage, MAX_FILE_SIZE } from "@/utils/imageUtils";
 
 interface PhotoUploadProps {
-  onUpload: (files: File[]) => void;
-  photos: File[];
+  onUpload: (files: string[]) => void;
+  photos: string[];
 }
 
 const PhotoUpload = ({ onUpload, photos }: PhotoUploadProps) => {
+  const { toast } = useToast();
+
+  const processFiles = async (files: File[]) => {
+    const validFiles = files.filter(file => {
+      if (!validateImageSize(file)) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds the maximum size of 20MB`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    try {
+      const base64Promises = validFiles.map(async (file) => {
+        const base64 = await convertToBase64(file);
+        return await compressImage(base64);
+      });
+
+      const base64Results = await Promise.all(base64Promises);
+      onUpload(base64Results);
+    } catch (error) {
+      toast({
+        title: "Error processing images",
+        description: "Failed to process one or more images",
+        variant: "destructive",
+      });
+    }
+  };
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    onUpload(acceptedFiles);
-  }, [onUpload]);
+    processFiles(acceptedFiles);
+  }, [processFiles]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png']
     },
-    maxFiles: 4
+    maxFiles: 4,
+    maxSize: MAX_FILE_SIZE,
   });
 
   const removePhoto = (index: number) => {
@@ -39,7 +74,7 @@ const PhotoUpload = ({ onUpload, photos }: PhotoUploadProps) => {
         <p className="text-sm text-gray-600">
           {isDragActive
             ? "Drop the photos here..."
-            : "Drag & drop up to 4 workspace photos, or click to select"}
+            : "Drag & drop up to 4 workspace photos (max 20MB each), or click to select"}
         </p>
       </div>
 
@@ -56,7 +91,7 @@ const PhotoUpload = ({ onUpload, photos }: PhotoUploadProps) => {
                 <X className="h-4 w-4" />
               </Button>
               <img
-                src={URL.createObjectURL(photo)}
+                src={photo}
                 alt={`Workspace photo ${index + 1}`}
                 className="w-full h-32 object-cover rounded"
               />
