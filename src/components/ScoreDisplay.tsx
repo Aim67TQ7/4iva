@@ -13,13 +13,14 @@ interface ScoreDisplayProps {
 }
 
 const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
-  // Use the raw scores directly without normalization
+  const adjustedScores = getAdjustedScores(scores);
+  
   const data = [
-    { subject: "Sort", score: scores.sort },
-    { subject: "Set in Order", score: scores.setInOrder },
-    { subject: "Shine", score: scores.shine },
-    { subject: "Standardize", score: scores.standardize },
-    { subject: "Sustain", score: scores.sustain },
+    { subject: "Sort", score: adjustedScores.sort },
+    { subject: "Set in Order", score: adjustedScores.setInOrder },
+    { subject: "Shine", score: adjustedScores.shine },
+    { subject: "Standardize", score: adjustedScores.standardize },
+    { subject: "Sustain", score: adjustedScores.sustain },
   ];
 
   return (
