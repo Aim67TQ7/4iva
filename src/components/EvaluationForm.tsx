@@ -57,46 +57,42 @@ const EvaluationForm = ({ onEvaluationComplete, companyId, onWorkspaceSelect }: 
 
     setIsEvaluating(true);
     try {
-      const response = await fetch("/api/evaluate-workspace", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ photos }),
+      const { data: evaluationData, error: functionError } = await supabase.functions.invoke('evaluate-workspace', {
+        body: { photos }
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to evaluate workspace");
+      if (functionError) throw functionError;
+
+      if (!evaluationData) {
+        throw new Error("No evaluation data received");
       }
 
-      const evaluation = await response.json();
-
       const scores = {
-        sort: evaluation.sortScore || 0,
-        setInOrder: evaluation.setInOrderScore || 0,
-        shine: evaluation.shineScore || 0,
-        standardize: evaluation.standardizeScore || 0,
-        sustain: evaluation.sustainScore || 0,
+        sort: evaluationData.sortScore || 0,
+        setInOrder: evaluationData.setInOrderScore || 0,
+        shine: evaluationData.shineScore || 0,
+        standardize: evaluationData.standardizeScore || 0,
+        sustain: evaluationData.sustainScore || 0,
       };
 
       const totalScore = [
-        evaluation.sortScore,
-        evaluation.setInOrderScore,
-        evaluation.shineScore,
-        evaluation.standardizeScore,
-        evaluation.sustainScore
+        evaluationData.sortScore,
+        evaluationData.setInOrderScore,
+        evaluationData.shineScore,
+        evaluationData.standardizeScore,
+        evaluationData.sustainScore
       ].reduce((acc, score) => acc + (typeof score === 'number' ? score : 0), 0);
 
       const { error: dbError } = await supabase.from("evaluations").insert({
         workspace_id: selectedWorkspace,
         company_id: companyId,
         photos: photos,
-        sort_score: evaluation.sortScore || null,
-        set_order_score: evaluation.setInOrderScore || null,
-        shine_score: evaluation.shineScore || null,
-        standardize_score: evaluation.standardizeScore || null,
-        sustain_score: evaluation.sustainScore || null,
-        feedback: evaluation.feedback || null,
+        sort_score: evaluationData.sortScore || null,
+        set_order_score: evaluationData.setInOrderScore || null,
+        shine_score: evaluationData.shineScore || null,
+        standardize_score: evaluationData.standardizeScore || null,
+        sustain_score: evaluationData.sustainScore || null,
+        feedback: evaluationData.feedback || null,
         total_score: totalScore || null,
       });
 
