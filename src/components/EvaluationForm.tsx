@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import PhotoUpload from "@/components/PhotoUpload";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
-import CameraCapture from "@/components/CameraCapture";
 import { supabase } from "@/integrations/supabase/client";
 import { Score } from "@/types/evaluation";
-import { Loader2, Save, RefreshCw } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import PhotoSection from "./PhotoSection";
+import EvaluationActions from "./EvaluationActions";
 
 interface EvaluationFormProps {
   onEvaluationComplete: (scores: Score) => void;
@@ -17,27 +15,15 @@ interface EvaluationFormProps {
   onWorkspaceSelect: (workspaceId: string) => void;
 }
 
-const EvaluationForm = ({ onEvaluationComplete, companyId, onWorkspaceSelect }: EvaluationFormProps) => {
+const EvaluationForm = ({
+  onEvaluationComplete,
+  companyId,
+  onWorkspaceSelect,
+}: EvaluationFormProps) => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [isEvaluating, setIsEvaluating] = useState(false);
   const { toast } = useToast();
-
-  const handlePhotoUpload = (base64Photos: string[]) => {
-    if (base64Photos.length > 4) {
-      toast({
-        title: "Too many photos",
-        description: "Please upload a maximum of 4 photos",
-        variant: "destructive",
-      });
-      return;
-    }
-    setPhotos(base64Photos);
-  };
-
-  const handleCameraCapture = (photo: string) => {
-    setPhotos(prev => [...prev, photo]);
-  };
 
   const handleEvaluate = async () => {
     if (!selectedWorkspace) {
@@ -172,49 +158,21 @@ const EvaluationForm = ({ onEvaluationComplete, companyId, onWorkspaceSelect }: 
         <CardTitle>Workspace Selection & Photo Capture</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <WorkspaceSelector 
+        <WorkspaceSelector
           onSelect={(id) => {
             setSelectedWorkspace(id);
             onWorkspaceSelect(id);
-          }} 
+          }}
           companyId={companyId}
         />
-        <CameraCapture onPhotoCapture={handleCameraCapture} />
-        <PhotoUpload onUpload={handlePhotoUpload} photos={photos} />
-        <div className="space-y-2">
-          <Button
-            onClick={handleEvaluate}
-            className="w-full"
-            disabled={!selectedWorkspace || photos.length === 0 || isEvaluating}
-          >
-            {isEvaluating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Evaluating...
-              </>
-            ) : (
-              "Evaluate Workspace"
-            )}
-          </Button>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={handleSavePDF}
-              variant="outline"
-              className="w-full"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Save to PDF
-            </Button>
-            <Button
-              onClick={handleNewEvaluation}
-              variant="outline"
-              className="w-full"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              New Evaluation
-            </Button>
-          </div>
-        </div>
+        <PhotoSection onPhotosChange={setPhotos} />
+        <EvaluationActions
+          onEvaluate={handleEvaluate}
+          onSavePDF={handleSavePDF}
+          onNewEvaluation={handleNewEvaluation}
+          isEvaluating={isEvaluating}
+          isDisabled={!selectedWorkspace || photos.length === 0}
+        />
       </CardContent>
     </Card>
   );
