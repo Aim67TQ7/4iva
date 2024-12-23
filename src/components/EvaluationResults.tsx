@@ -3,6 +3,9 @@ import ScoreDisplay from "@/components/ScoreDisplay";
 import Feedback from "@/components/Feedback";
 import TrendsChart from "@/components/TrendsChart";
 import { Score } from "@/types/evaluation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface EvaluationResultsProps {
   scores: Score;
@@ -10,11 +13,34 @@ interface EvaluationResultsProps {
 }
 
 const EvaluationResults = ({ scores, workspaceId }: EvaluationResultsProps) => {
+  const [workspaceName, setWorkspaceName] = useState<string>("");
+  
+  useEffect(() => {
+    const fetchWorkspaceName = async () => {
+      if (!workspaceId) return;
+      
+      const { data, error } = await supabase
+        .from("workspaces")
+        .select("name")
+        .eq("id", workspaceId)
+        .single();
+        
+      if (!error && data) {
+        setWorkspaceName(data.name);
+      }
+    };
+    
+    fetchWorkspaceName();
+  }, [workspaceId]);
+
   return (
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Current Evaluation</CardTitle>
+          <CardTitle>{workspaceName || "Select a Workspace"}</CardTitle>
+          <p className="text-sm text-gray-500">
+            {format(new Date(), "MMMM d, yyyy")}
+          </p>
         </CardHeader>
         <CardContent>
           <ScoreDisplay scores={scores} />

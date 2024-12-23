@@ -12,10 +12,24 @@ export const calculateTotalScore = (scores: Score): number => {
   
   const baseScore = normalizedScores.sort + normalizedScores.setInOrder + normalizedScores.shine;
   
-  // If base score is less than 12, standardize and sustain are automatically 0
+  // If base score is less than 12, standardize and sustain should be 0
   if (baseScore < 12) {
     return baseScore;
   }
   
   return baseScore + normalizedScores.standardize + normalizedScores.sustain;
+};
+
+export const getAdjustedScores = (scores: Score): Score => {
+  const baseScore = scores.sort + scores.setInOrder + scores.shine;
+  
+  if (baseScore < 12) {
+    return {
+      ...scores,
+      standardize: 0,
+      sustain: 0
+    };
+  }
+  
+  return scores;
 };

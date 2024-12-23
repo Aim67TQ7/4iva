@@ -6,19 +6,22 @@ import {
   Radar,
   ResponsiveContainer,
 } from "recharts";
+import { getAdjustedScores } from "@/utils/scoring";
 
 interface ScoreDisplayProps {
   scores: Score;
 }
 
 const ScoreDisplay = ({ scores }: ScoreDisplayProps) => {
+  const adjustedScores = getAdjustedScores(scores);
+  
   // Ensure all scores are between 0 and 5
   const normalizedScores = {
-    sort: Math.min(5, Math.max(0, scores.sort)),
-    setInOrder: Math.min(5, Math.max(0, scores.setInOrder)),
-    shine: Math.min(5, Math.max(0, scores.shine)),
-    standardize: Math.min(5, Math.max(0, scores.standardize)),
-    sustain: Math.min(5, Math.max(0, scores.sustain)),
+    sort: Math.min(5, Math.max(0, adjustedScores.sort)),
+    setInOrder: Math.min(5, Math.max(0, adjustedScores.setInOrder)),
+    shine: Math.min(5, Math.max(0, adjustedScores.shine)),
+    standardize: Math.min(5, Math.max(0, adjustedScores.standardize)),
+    sustain: Math.min(5, Math.max(0, adjustedScores.sustain)),
   };
 
   const data = [
