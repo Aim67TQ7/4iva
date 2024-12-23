@@ -83,29 +83,35 @@ const Index = () => {
 
       const evaluation = await response.json();
 
+      // Update the scores state with the evaluation results
       setScores({
-        sort: evaluation.sortScore,
-        setInOrder: evaluation.setInOrderScore,
-        shine: evaluation.shineScore,
-        standardize: evaluation.standardizeScore,
-        sustain: evaluation.sustainScore,
+        sort: evaluation.sortScore || 0,
+        setInOrder: evaluation.setInOrderScore || 0,
+        shine: evaluation.shineScore || 0,
+        standardize: evaluation.standardizeScore || 0,
+        sustain: evaluation.sustainScore || 0,
       });
 
-      const totalScore = Object.values(evaluation).reduce(
-        (acc: number, score: number) => acc + (typeof score === "number" ? score : 0),
-        0
-      );
+      // Calculate total score from the numeric scores only
+      const totalScore = [
+        evaluation.sortScore,
+        evaluation.setInOrderScore,
+        evaluation.shineScore,
+        evaluation.standardizeScore,
+        evaluation.sustainScore
+      ].reduce((acc, score) => acc + (typeof score === 'number' ? score : 0), 0);
 
+      // Insert the evaluation into Supabase with proper typing
       const { error: dbError } = await supabase.from("evaluations").insert({
         workspace_id: selectedWorkspace,
-        photos,
-        sort_score: evaluation.sortScore,
-        set_order_score: evaluation.setInOrderScore,
-        shine_score: evaluation.shineScore,
-        standardize_score: evaluation.standardizeScore,
-        sustain_score: evaluation.sustainScore,
-        feedback: evaluation.feedback,
-        total_score: totalScore,
+        photos: photos,
+        sort_score: evaluation.sortScore || null,
+        set_order_score: evaluation.setInOrderScore || null,
+        shine_score: evaluation.shineScore || null,
+        standardize_score: evaluation.standardizeScore || null,
+        sustain_score: evaluation.sustainScore || null,
+        feedback: evaluation.feedback || null,
+        total_score: totalScore || null,
       });
 
       if (dbError) throw dbError;
@@ -115,6 +121,7 @@ const Index = () => {
         description: "Your workspace has been evaluated successfully",
       });
     } catch (error) {
+      console.error("Evaluation error:", error);
       toast({
         title: "Evaluation Failed",
         description: error.message,
