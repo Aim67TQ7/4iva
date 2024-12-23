@@ -17,30 +17,51 @@ serve(async (req) => {
     const maxPhotos = 4;
     const processedPhotos = photos.slice(0, maxPhotos).map(photo => {
       // Extract a smaller portion of the base64 string if it's too long
-      // This is a simple approach - we're just taking the first part of the image
       const maxLength = 50000; // Adjust this value as needed
       return photo.length > maxLength ? photo.substring(0, maxLength) : photo;
     });
 
-    const prompt = `You are a 5S workplace organization expert. Analyze these workplace photos and provide scores from 1-5 for each of the 5S principles (Sort, Set in Order, Shine, Standardize, Sustain) and detailed feedback.
+    const prompt = `As a 5S workplace organization expert, analyze these workplace photos and provide a detailed evaluation. For each of the 5S principles below, provide:
+1. A score from 1-5 (where 1 is poor and 5 is excellent)
+2. Specific observations and recommendations
 
-Consider:
-- Sort: Are unnecessary items removed?
-- Set in Order: Is there a clear place for everything?
-- Shine: Is the area clean and well-maintained?
-- Standardize: Are there clear visual controls and procedures?
-- Sustain: Are there systems to maintain the other 4S principles?
+Evaluate these principles:
+
+Sort (Seiri):
+- Are unnecessary items removed?
+- Is there clear distinction between needed and unneeded items?
+- Are there items that should be eliminated?
+
+Set in Order (Seiton):
+- Is there a clear place for everything?
+- Are items arranged for easy access and return?
+- Are storage locations clearly marked and labeled?
+
+Shine (Seiso):
+- Is the area clean and well-maintained?
+- Are equipment and tools in good condition?
+- Are cleaning routines evident?
+
+Standardize (Seiketsu):
+- Are there clear visual controls and procedures?
+- Are standards documented and visible?
+- Is there consistency across the workspace?
+
+Sustain (Shitsuke):
+- Are there systems to maintain the other 4S principles?
+- Is there evidence of regular audits or checks?
+- Is there a culture of continuous improvement?
 
 Base64 encoded photos to analyze: ${processedPhotos.join(', ')}
 
 Respond with valid JSON only, following this exact format:
 {
-  "sortScore": number,
-  "setInOrderScore": number,
-  "shineScore": number,
-  "standardizeScore": number,
-  "sustainScore": number,
-  "feedback": string
+  "sortScore": number (1-5),
+  "setInOrderScore": number (1-5),
+  "shineScore": number (1-5),
+  "standardizeScore": number (1-5),
+  "sustainScore": number (1-5),
+  "feedback": "Detailed feedback string with specific observations and recommendations for each category"
 }`
 
     console.log("Sending request to Claude API...");
