@@ -9,8 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      companies: {
+        Row: {
+          admin_email: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          admin_email: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          admin_email?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       evaluations: {
         Row: {
+          company_id: string | null
           created_at: string
           feedback: string | null
           id: string
@@ -21,8 +43,10 @@ export type Database = {
           standardize_score: number | null
           sustain_score: number | null
           total_score: number | null
+          workspace_id: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           feedback?: string | null
           id?: string
@@ -33,8 +57,10 @@ export type Database = {
           standardize_score?: number | null
           sustain_score?: number | null
           total_score?: number | null
+          workspace_id?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           feedback?: string | null
           id?: string
@@ -45,8 +71,59 @@ export type Database = {
           standardize_score?: number | null
           sustain_score?: number | null
           total_score?: number | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
