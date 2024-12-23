@@ -38,11 +38,24 @@ const WorkspaceSelector = ({ onSelect }: WorkspaceSelectorProps) => {
         return;
       }
 
-      setWorkspaces(data);
+      // Sort workspaces to put "Misc" first
+      const sortedWorkspaces = data.sort((a, b) => {
+        if (a.name === "Misc") return -1;
+        if (b.name === "Misc") return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      setWorkspaces(sortedWorkspaces);
+
+      // Set Misc as default if it exists
+      const miscWorkspace = sortedWorkspaces.find(w => w.name === "Misc");
+      if (miscWorkspace) {
+        onSelect(miscWorkspace.id);
+      }
     };
 
     fetchWorkspaces();
-  }, [toast]);
+  }, [toast, onSelect]);
 
   return (
     <div className="space-y-2">
