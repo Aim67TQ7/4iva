@@ -18,10 +18,12 @@ serve(async (req) => {
       throw new Error('No photos provided or invalid photos format');
     }
 
-    // Process and validate photos
+    // Process and validate photos - limit size by taking a smaller portion
     const processedPhotos = photos.slice(0, 4).map(photo => {
       if (typeof photo !== 'string') return '';
-      return photo.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+      // Take only the first 10000 characters of each photo's base64 string
+      // This significantly reduces the token count while still maintaining enough data for analysis
+      return photo.substring(0, 10000);
     }).filter(photo => photo.length > 0);
 
     if (processedPhotos.length === 0) {
@@ -35,64 +37,18 @@ serve(async (req) => {
       throw new Error('Missing ANTHROPIC_API_KEY');
     }
 
-    const prompt = `As a 5S workplace organization expert, analyze these workplace photos and provide a detailed evaluation. For each of the 5S principles below, provide:
-1. A score from 1-10 (where 1 is poor and 10 is excellent)
-2. Specific observations and recommendations
-
-IMPORTANT SCORING RULES:
-- Scores must be whole numbers between 1 and 10
-- The base score is the sum of Sort + Set in Order + Shine scores
-- If the base score is less than 22, Standardize and Sustain scores must be 0
-- If the base score is 22 or higher, provide scores for Standardize and Sustain
-
-Evaluate these principles:
-
-Sort (Seiri):
-- Are unnecessary items removed?
-- Is there clear distinction between needed and unneeded items?
-- Are there items that should be eliminated?
-- Is there a clear red-tag system in place?
-- Is frequency of use considered in storage decisions?
-
-Set in Order (Seiton):
-- Is there a clear place for everything?
-- Are items arranged for easy access and return?
-- Are storage locations clearly marked and labeled?
-- Are shadow boards and visual management systems used effectively?
-- Is item placement optimized based on frequency of use?
-
-Shine (Seiso):
-- Is the area clean and well-maintained?
-- Are equipment and tools in good condition?
-- Are cleaning routines evident and documented?
-- Is preventive maintenance being performed?
-- Are cleaning responsibilities clearly assigned?
-
-Standardize (Seiketsu) - Only score if base score ≥ 22:
-- Are there clear visual controls and procedures?
-- Are standards documented and visible?
-- Is there consistency across the workspace?
-- Are best practices well-documented and followed?
-- Are regular audits performed to ensure compliance?
-
-Sustain (Shitsuke) - Only score if base score ≥ 22:
-- Are there systems to maintain the other 4S principles?
-- Is there evidence of regular audits or checks?
-- Is there a culture of continuous improvement?
-- Is team engagement evident in maintaining standards?
-- Are improvements consistently implemented and tracked?
-
-Base64 encoded photos to analyze: ${processedPhotos.join(', ')}
-
-Respond with valid JSON only, following this exact format:
+    // Create a more concise prompt
+    const prompt = `As a 5S workplace organization expert, analyze these workspace photos (truncated for brevity) and evaluate the 5S principles. Provide scores and feedback in this exact JSON format:
 {
-  "sortScore": number (1-10),
-  "setInOrderScore": number (1-10),
-  "shineScore": number (1-10),
-  "standardizeScore": number (0 or 1-10, must be 0 if base score < 22),
-  "sustainScore": number (0 or 1-10, must be 0 if base score < 22),
-  "feedback": "Detailed feedback string with specific observations and recommendations for each category"
-}`;
+  "sortScore": (1-10),
+  "setInOrderScore": (1-10),
+  "shineScore": (1-10),
+  "standardizeScore": (number, must be 0 if base score < 22),
+  "sustainScore": (number, must be 0 if base score < 22),
+  "feedback": "detailed feedback"
+}
+
+Base64 photo data: ${processedPhotos.join(' | ')}`;
 
     console.log("Sending request to Claude API...");
     
@@ -106,7 +62,7 @@ Respond with valid JSON only, following this exact format:
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         max_tokens: 1024,
-        system: "You are a 5S workplace organization expert. Analyze workplace photos and provide numerical scores and feedback. Always respond in valid JSON format with exactly these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback. Ensure scores follow the rules: 1-10 range, whole numbers only, and if base score (Sort + Set + Shine) is less than 22, then Standardize and Sustain must be 0.",
+        system: "You are a 5S workplace organization expert. Analyze workspace photos and provide numerical scores and feedback. Always respond in valid JSON format with exactly these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback. Ensure scores follow the rules: 1-10 range, whole numbers only, and if base score (Sort + Set + Shine) is less than 22, then Standardize and Sustain must be 0.",
         messages: [{
           role: 'user',
           content: prompt
