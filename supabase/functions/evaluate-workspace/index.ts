@@ -18,45 +18,55 @@ serve(async (req) => {
       p.length > 30000 ? p.substring(0, 30000) : p
     );
 
-    const prompt = `As a 5S expert, evaluate these workplace photos. Score 1-10 and give feedback for each:
+    const prompt = `As a 5S workplace organization expert, conduct a detailed evaluation of these workspace photos. Analyze and score each category from 1-10 based on specific visual evidence:
 
-Sort:
-- Remove unnecessary items
-- Distinguish needed/unneeded
-- Consider usage frequency
+Sort (Organization):
+- Evidence of red-tag system implementation
+- Clear distinction between necessary and unnecessary items
+- Proper categorization based on frequency of use
+- Removal of obsolete or excess items
+- Clear decision criteria for item retention
 
-Set in Order:
-- Clear storage locations
-- Easy access/return
-- Visual management
+Set in Order (Orderliness):
+- Presence and effectiveness of visual management systems
+- Strategic placement of items based on usage frequency
+- Use of shadow boards and clear labeling
+- Efficient workflow patterns and space utilization
+- Accessibility of frequently used items
 
-Shine:
-- Cleanliness
-- Maintenance
-- Cleaning routines
+Shine (Cleanliness):
+- Overall cleanliness of workspace and equipment
+- Evidence of regular cleaning routines
+- Equipment maintenance standards
+- Cleanliness of surfaces, tools, and machinery
+- Signs of preventive maintenance implementation
 
-If Sort + Set + Shine ≥ 22, also score:
+If Sort + Set + Shine ≥ 22, also evaluate:
 
-Standardize:
-- Visual controls
-- Documented standards
-- Consistency
+Standardize (Standardization):
+- Implementation of visual controls
+- Evidence of documented procedures
+- Consistency in organization methods
+- Clear workplace standards
+- Regular auditing systems
 
-Sustain:
-- Maintenance systems
-- Regular audits
-- Continuous improvement
+Sustain (Sustainability):
+- Signs of continuous improvement culture
+- Evidence of regular audits
+- Team engagement indicators
+- Maintenance of established standards
+- Documentation of improvements
 
-Photos: ${processedPhotos.join(', ')}
+Analyze the photos: ${processedPhotos.join(', ')}
 
-Respond with JSON only:
+Provide scores and specific feedback based on visual evidence. Response must be valid JSON:
 {
   "sortScore": 1-10,
   "setInOrderScore": 1-10,
   "shineScore": 1-10,
   "standardizeScore": 0-10,
   "sustainScore": 0-10,
-  "feedback": "Brief observations and key recommendations for each category"
+  "feedback": "Detailed observations and specific recommendations for each category"
 }`
 
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -71,14 +81,14 @@ Respond with JSON only:
       },
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
-        max_tokens: 512,
+        max_tokens: 1024,
         messages: [{
           role: 'user',
           content: prompt
         }],
-        system: "You are a 5S expert. Provide concise scores (1-10) and feedback for workplace photos. Response must be valid JSON with: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, feedback. If base score < 22, standardize and sustain = 0."
+        system: "You are a 5S workplace organization expert. Provide detailed, specific scores and feedback based on visual evidence in workspace photos. Focus on concrete observations and actionable recommendations. Avoid generic language."
       })
-    })
+    });
 
     if (!response.ok) {
       throw new Error(`API error: ${(await response.json()).error?.message || 'Unknown error'}`)
@@ -94,14 +104,17 @@ Respond with JSON only:
       evaluation.sustainScore = 0;
     }
 
+    console.log('Evaluation results:', evaluation);
+
     return new Response(
       JSON.stringify(evaluation),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Error in evaluate-workspace function:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Evaluation failed' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
-})
+});
