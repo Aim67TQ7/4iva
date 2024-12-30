@@ -155,7 +155,7 @@ const EvaluationForm = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Workspace Selection & Photo Capture</CardTitle>
+        <CardTitle>Select a Workspace</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <WorkspaceSelector
