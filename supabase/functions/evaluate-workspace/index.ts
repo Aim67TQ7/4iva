@@ -1,26 +1,24 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { photos } = await req.json()
+    const { photos } = await req.json();
     
-    // Sanitize and validate photos array
     if (!Array.isArray(photos) || photos.length === 0) {
       throw new Error('No photos provided or invalid photos format');
     }
 
-    // Clean and limit photo data
-    const processedPhotos = photos.slice(0, 3).map(photo => {
-      // Remove any potential problematic characters from base64 strings
+    const processedPhotos = photos.slice(0, 4).map(photo => {
       if (typeof photo !== 'string') return '';
       return photo.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
     }).filter(photo => photo.length > 0);
@@ -31,51 +29,56 @@ serve(async (req) => {
 
     console.log(`Processing ${processedPhotos.length} photos`);
 
-    const prompt = `As a 5S workplace organization expert, conduct a detailed evaluation of these workspace photos. Analyze and score each category from 1-10 based on specific visual evidence:
-
-Sort (Organization):
-- Evidence of red-tag system implementation
-- Clear distinction between necessary and unnecessary items
-- Proper categorization based on frequency of use
-- Removal of obsolete or excess items
-- Clear decision criteria for item retention
-
-Set in Order (Orderliness):
-- Presence and effectiveness of visual management systems
-- Strategic placement of items based on usage frequency
-- Use of shadow boards and clear labeling
-- Efficient workflow patterns and space utilization
-- Accessibility of frequently used items
-
-Shine (Cleanliness):
-- Overall cleanliness of workspace and equipment
-- Evidence of regular cleaning routines
-- Equipment maintenance standards
-- Cleanliness of surfaces, tools, and machinery
-- Signs of preventive maintenance implementation
-
-If Sort + Set + Shine ≥ 22, also evaluate:
-
-Standardize (Standardization):
-- Implementation of visual controls
-- Evidence of documented procedures
-- Consistency in organization methods
-- Clear workplace standards
-- Regular auditing systems
-
-Sustain (Sustainability):
-- Signs of continuous improvement culture
-- Evidence of regular audits
-- Team engagement indicators
-- Maintenance of established standards
-- Documentation of improvements
-
-Analyze the provided workspace photos and provide specific, detailed feedback based on visual evidence.`;
-
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicApiKey) {
       throw new Error('Missing ANTHROPIC_API_KEY');
     }
+
+    const systemPrompt = `You are a 5S workplace organization expert. Analyze the provided workspace photos and provide scores and detailed feedback. Your response must be valid JSON with this exact structure:
+{
+  "sortScore": number between 1-10,
+  "setInOrderScore": number between 1-10,
+  "shineScore": number between 1-10,
+  "standardizeScore": number between 0-10,
+  "sustainScore": number between 0-10,
+  "feedback": "detailed feedback string"
+}`;
+
+    const userPrompt = `Analyze these workspace photos and provide detailed scores and feedback for each 5S category:
+
+1. Sort (Organization) - Score 1-10:
+- Evidence of red-tag system
+- Clear distinction between necessary/unnecessary items
+- Proper categorization by frequency of use
+- Removal of obsolete items
+
+2. Set in Order (Orderliness) - Score 1-10:
+- Visual management systems
+- Strategic item placement
+- Use of shadow boards and labels
+- Efficient workflow patterns
+
+3. Shine (Cleanliness) - Score 1-10:
+- Workspace and equipment cleanliness
+- Regular cleaning routines
+- Equipment maintenance
+- Surface cleanliness
+
+If Sort + Set + Shine ≥ 22, also evaluate:
+
+4. Standardize (Standardization) - Score 1-10:
+- Visual controls
+- Documented procedures
+- Consistency in methods
+- Regular auditing
+
+5. Sustain (Sustainability) - Score 1-10:
+- Continuous improvement culture
+- Regular audits
+- Team engagement
+- Standards maintenance
+
+Provide specific, detailed feedback based on visual evidence. Avoid generic language.`;
 
     console.log('Sending request to Anthropic API...');
 
@@ -89,11 +92,10 @@ Analyze the provided workspace photos and provide specific, detailed feedback ba
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: `${prompt}\n\nAnalyze these photos: ${processedPhotos.length} workspace photos provided`
-        }],
-        system: "You are a 5S workplace organization expert. Provide detailed, specific scores and feedback based on visual evidence in workspace photos. Focus on concrete observations and actionable recommendations. Avoid generic language. Always respond with valid JSON containing numerical scores (1-10) for each category and detailed feedback."
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `${userPrompt}\n\nAnalyze these photos: ${processedPhotos.length} workspace photos provided` }
+        ]
       })
     });
 
@@ -112,15 +114,41 @@ Analyze the provided workspace photos and provide specific, detailed feedback ba
     }
 
     try {
-      const evaluation = JSON.parse(result.content[0].text);
-      console.log('Successfully parsed evaluation results');
+      // Parse and validate the AI response
+      const aiResponse = result.content[0].text;
+      console.log('AI Response:', aiResponse);
+      
+      const evaluation = JSON.parse(aiResponse);
+      
+      // Validate required fields and score ranges
+      const requiredFields = ['sortScore', 'setInOrderScore', 'shineScore', 'standardizeScore', 'sustainScore', 'feedback'];
+      const missingFields = requiredFields.filter(field => !(field in evaluation));
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
 
-      // Validate scores
-      const baseScore = (evaluation.sortScore || 0) + (evaluation.setInOrderScore || 0) + (evaluation.shineScore || 0);
+      // Ensure scores are numbers and within valid ranges
+      const validateScore = (score: number, min: number, max: number) => {
+        return Number.isInteger(score) && score >= min && score <= max;
+      };
+
+      if (!validateScore(evaluation.sortScore, 1, 10) ||
+          !validateScore(evaluation.setInOrderScore, 1, 10) ||
+          !validateScore(evaluation.shineScore, 1, 10) ||
+          !validateScore(evaluation.standardizeScore, 0, 10) ||
+          !validateScore(evaluation.sustainScore, 0, 10)) {
+        throw new Error('Invalid score values');
+      }
+
+      // Apply business rules for standardize and sustain scores
+      const baseScore = evaluation.sortScore + evaluation.setInOrderScore + evaluation.shineScore;
       if (baseScore < 22) {
         evaluation.standardizeScore = 0;
         evaluation.sustainScore = 0;
       }
+
+      console.log('Successfully parsed and validated evaluation:', evaluation);
 
       return new Response(
         JSON.stringify(evaluation),
@@ -128,7 +156,7 @@ Analyze the provided workspace photos and provide specific, detailed feedback ba
       );
     } catch (parseError) {
       console.error('Failed to parse evaluation result:', parseError);
-      throw new Error('Failed to parse evaluation result as JSON');
+      throw new Error(`Failed to parse AI response: ${parseError.message}`);
     }
   } catch (error) {
     console.error('Error in evaluate-workspace function:', error);
