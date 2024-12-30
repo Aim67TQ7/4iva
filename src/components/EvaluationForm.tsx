@@ -8,17 +8,23 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import PhotoSection from "./PhotoSection";
 import EvaluationActions from "./EvaluationActions";
+import ScoreDisplay from "./ScoreDisplay";
+import TrendsChart from "./TrendsChart";
 
 interface EvaluationFormProps {
   onEvaluationComplete: (scores: Score) => void;
   companyId: string;
   onWorkspaceSelect: (workspaceId: string) => void;
+  scores: Score;
+  workspaceId: string | null;
 }
 
 const EvaluationForm = ({
   onEvaluationComplete,
   companyId,
   onWorkspaceSelect,
+  scores,
+  workspaceId,
 }: EvaluationFormProps) => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
@@ -153,28 +159,54 @@ const EvaluationForm = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Select a Workspace</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <WorkspaceSelector
-          onSelect={(id) => {
-            setSelectedWorkspace(id);
-            onWorkspaceSelect(id);
-          }}
-          companyId={companyId}
-        />
-        <PhotoSection onPhotosChange={setPhotos} />
-        <EvaluationActions
-          onEvaluate={handleEvaluate}
-          onSavePDF={handleSavePDF}
-          onNewEvaluation={handleNewEvaluation}
-          isEvaluating={isEvaluating}
-          isDisabled={!selectedWorkspace || photos.length === 0}
-        />
-      </CardContent>
-    </Card>
+    <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Select a Workspace</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <WorkspaceSelector
+            onSelect={(id) => {
+              setSelectedWorkspace(id);
+              onWorkspaceSelect(id);
+            }}
+            companyId={companyId}
+          />
+          <PhotoSection onPhotosChange={setPhotos} />
+          <EvaluationActions
+            onEvaluate={handleEvaluate}
+            onSavePDF={handleSavePDF}
+            onNewEvaluation={handleNewEvaluation}
+            isEvaluating={isEvaluating}
+            isDisabled={!selectedWorkspace || photos.length === 0}
+          />
+        </CardContent>
+      </Card>
+
+      {Object.values(scores).some(score => score > 0) && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Evaluation Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScoreDisplay scores={scores} />
+            </CardContent>
+          </Card>
+
+          {workspaceId && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Historical Trends</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TrendsChart workspaceId={workspaceId} />
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
   );
 };
 

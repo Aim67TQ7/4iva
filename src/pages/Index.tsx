@@ -96,10 +96,12 @@ const Index = () => {
           }}
           companyId={companyId}
           onWorkspaceSelect={setSelectedWorkspace}
+          scores={scores}
+          workspaceId={selectedWorkspace}
         />
         <EvaluationResults
           scores={scores}
-          workspaceId={selectedWorkspace || null}
+          workspaceId={selectedWorkspace}
         />
       </div>
     </div>
