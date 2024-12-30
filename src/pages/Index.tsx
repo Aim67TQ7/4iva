@@ -86,7 +86,7 @@ const Index = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8 text-center">
-        5S Workspace Evaluation
+        Optimize Your Space
       </h1>
 
       <div className="grid gap-8 md:grid-cols-2">
