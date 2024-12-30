@@ -13,10 +13,23 @@ serve(async (req) => {
   try {
     const { photos } = await req.json()
     
-    // Limit photos and size
-    const processedPhotos = photos.slice(0, 3).map(p => 
-      p.length > 30000 ? p.substring(0, 30000) : p
-    );
+    // Sanitize and validate photos array
+    if (!Array.isArray(photos) || photos.length === 0) {
+      throw new Error('No photos provided or invalid photos format');
+    }
+
+    // Clean and limit photo data
+    const processedPhotos = photos.slice(0, 3).map(photo => {
+      // Remove any potential problematic characters from base64 strings
+      if (typeof photo !== 'string') return '';
+      return photo.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    }).filter(photo => photo.length > 0);
+
+    if (processedPhotos.length === 0) {
+      throw new Error('No valid photos after processing');
+    }
+
+    console.log(`Processing ${processedPhotos.length} photos`);
 
     const prompt = `As a 5S workplace organization expert, conduct a detailed evaluation of these workspace photos. Analyze and score each category from 1-10 based on specific visual evidence:
 
@@ -57,20 +70,14 @@ Sustain (Sustainability):
 - Maintenance of established standards
 - Documentation of improvements
 
-Analyze the photos: ${processedPhotos.join(', ')}
-
-Provide scores and specific feedback based on visual evidence. Response must be valid JSON:
-{
-  "sortScore": 1-10,
-  "setInOrderScore": 1-10,
-  "shineScore": 1-10,
-  "standardizeScore": 0-10,
-  "sustainScore": 0-10,
-  "feedback": "Detailed observations and specific recommendations for each category"
-}`
+Analyze the provided workspace photos and provide specific, detailed feedback based on visual evidence.`;
 
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!anthropicApiKey) throw new Error('Missing API key');
+    if (!anthropicApiKey) {
+      throw new Error('Missing ANTHROPIC_API_KEY');
+    }
+
+    console.log('Sending request to Anthropic API...');
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -84,37 +91,56 @@ Provide scores and specific feedback based on visual evidence. Response must be 
         max_tokens: 1024,
         messages: [{
           role: 'user',
-          content: prompt
+          content: `${prompt}\n\nAnalyze these photos: ${processedPhotos.length} workspace photos provided`
         }],
-        system: "You are a 5S workplace organization expert. Provide detailed, specific scores and feedback based on visual evidence in workspace photos. Focus on concrete observations and actionable recommendations. Avoid generic language."
+        system: "You are a 5S workplace organization expert. Provide detailed, specific scores and feedback based on visual evidence in workspace photos. Focus on concrete observations and actionable recommendations. Avoid generic language. Always respond with valid JSON containing numerical scores (1-10) for each category and detailed feedback."
       })
     });
 
     if (!response.ok) {
-      throw new Error(`API error: ${(await response.json()).error?.message || 'Unknown error'}`)
+      const errorData = await response.text();
+      console.error('Anthropic API error:', errorData);
+      throw new Error(`Anthropic API error: ${errorData}`);
     }
 
-    const result = await response.json()
-    const evaluation = JSON.parse(result.content[0].text);
+    const result = await response.json();
+    console.log('Received response from Anthropic API');
 
-    // Enforce scoring rules
-    const baseScore = evaluation.sortScore + evaluation.setInOrderScore + evaluation.shineScore;
-    if (baseScore < 22) {
-      evaluation.standardizeScore = 0;
-      evaluation.sustainScore = 0;
+    if (!result.content || !result.content[0] || !result.content[0].text) {
+      console.error('Invalid Anthropic API response format:', result);
+      throw new Error('Invalid response format from Anthropic API');
     }
 
-    console.log('Evaluation results:', evaluation);
+    try {
+      const evaluation = JSON.parse(result.content[0].text);
+      console.log('Successfully parsed evaluation results');
 
-    return new Response(
-      JSON.stringify(evaluation),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      // Validate scores
+      const baseScore = (evaluation.sortScore || 0) + (evaluation.setInOrderScore || 0) + (evaluation.shineScore || 0);
+      if (baseScore < 22) {
+        evaluation.standardizeScore = 0;
+        evaluation.sustainScore = 0;
+      }
+
+      return new Response(
+        JSON.stringify(evaluation),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (parseError) {
+      console.error('Failed to parse evaluation result:', parseError);
+      throw new Error('Failed to parse evaluation result as JSON');
+    }
   } catch (error) {
     console.error('Error in evaluate-workspace function:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Evaluation failed' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    )
+      JSON.stringify({ 
+        error: error.message || 'Evaluation failed',
+        details: error.toString()
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      }
+    );
   }
 });
