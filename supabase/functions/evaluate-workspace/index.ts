@@ -35,7 +35,6 @@ serve(async (req) => {
       throw new Error('Missing ANTHROPIC_API_KEY');
     }
 
-    // Create a more specific and detailed prompt
     const prompt = `As a 5S workplace organization expert, analyze these workspace photos in detail. For each 5S principle, identify SPECIFIC items, locations, and conditions visible in the photos. Your evaluation should include:
 
 1. Sort (Seiri):
@@ -68,13 +67,13 @@ serve(async (req) => {
 - Point out any visible tracking or monitoring systems
 - List specific examples of good/poor practice maintenance
 
-Provide scores and detailed feedback in this exact JSON format:
+IMPORTANT: You must respond with a valid JSON object containing exactly these fields:
 {
-  "sortScore": (1-10),
-  "setInOrderScore": (1-10),
-  "shineScore": (1-10),
-  "standardizeScore": (number, must be 0 if base score < 22),
-  "sustainScore": (number, must be 0 if base score < 22),
+  "sortScore": (a number between 1-10),
+  "setInOrderScore": (a number between 1-10),
+  "shineScore": (a number between 1-10),
+  "standardizeScore": (a number, must be 0 if base score < 22),
+  "sustainScore": (a number, must be 0 if base score < 22),
   "feedback": "Detailed feedback with SPECIFIC examples from the photos for each category"
 }
 
@@ -92,7 +91,7 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         max_tokens: 1024,
-        system: "You are a 5S workplace organization expert. Analyze workspace photos and provide numerical scores with SPECIFIC, detailed feedback about items and conditions visible in the photos. Always respond in valid JSON format with exactly these fields: sortScore, setInOrderScore, shineScore, standardizeScore, sustainScore, and feedback. Ensure scores follow the rules: 1-10 range, whole numbers only, and if base score (Sort + Set + Shine) is less than 22, then Standardize and Sustain must be 0.",
+        system: "You are a 5S workplace organization expert. You MUST respond with a valid JSON object containing exactly these fields: sortScore (1-10), setInOrderScore (1-10), shineScore (1-10), standardizeScore (0 or 1-10 if base score >= 22), sustainScore (0 or 1-10 if base score >= 22), and feedback (string with specific examples). NO OTHER TEXT OR FORMATTING IS ALLOWED IN YOUR RESPONSE.",
         messages: [{
           role: 'user',
           content: prompt
@@ -100,36 +99,51 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       })
     });
 
-    console.log("Received response from Claude API");
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Claude API error response:", errorData);
+      throw new Error(`Claude API error: ${JSON.stringify(errorData)}`);
+    }
+
     const result = await response.json();
     console.log("Claude API raw response:", result);
-    
-    if (!response.ok) {
-      console.error("Claude API error:", result);
-      throw new Error(`Claude API error: ${JSON.stringify(result)}`);
-    }
 
     if (!result.content || !result.content[0] || !result.content[0].text) {
       console.error("Invalid Claude API response format:", result);
       throw new Error('Invalid response format from Claude API');
     }
 
-    console.log("Parsing Claude response...");
     let evaluation;
     try {
-      evaluation = JSON.parse(result.content[0].text);
+      // Try to extract JSON from the response text
+      const text = result.content[0].text.trim();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error("No JSON object found in response:", text);
+        throw new Error('No JSON object found in Claude response');
+      }
+      evaluation = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
       console.error("Failed to parse Claude response as JSON:", result.content[0].text);
       throw new Error('Failed to parse evaluation result as JSON');
     }
 
-    // Validate the evaluation object has all required fields
+    // Validate the evaluation object
     const requiredFields = ['sortScore', 'setInOrderScore', 'shineScore', 'standardizeScore', 'sustainScore', 'feedback'];
     const missingFields = requiredFields.filter(field => !(field in evaluation));
     
     if (missingFields.length > 0) {
       console.error("Missing required fields in evaluation:", missingFields);
       throw new Error(`Missing required fields in evaluation: ${missingFields.join(', ')}`);
+    }
+
+    // Validate score types and ranges
+    const scores = ['sortScore', 'setInOrderScore', 'shineScore', 'standardizeScore', 'sustainScore'];
+    for (const score of scores) {
+      if (typeof evaluation[score] !== 'number' || evaluation[score] < 0 || evaluation[score] > 10) {
+        console.error(`Invalid score for ${score}:`, evaluation[score]);
+        throw new Error(`Invalid score for ${score}: must be a number between 0 and 10`);
+      }
     }
 
     // Enforce scoring rules
@@ -139,7 +153,7 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       evaluation.sustainScore = 0;
     }
 
-    console.log("Evaluation result:", evaluation);
+    console.log("Final evaluation result:", evaluation);
 
     return new Response(
       JSON.stringify(evaluation),
