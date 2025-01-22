@@ -91,7 +91,7 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       },
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
-        max_tokens: 1024,
+        max_tokens: 4096,
         system: "You are a 5S workplace organization expert. You MUST respond with a valid JSON object containing exactly these fields: sortScore (1-10), setInOrderScore (1-10), shineScore (1-10), standardizeScore (0 or 1-10 if base score >= 22), sustainScore (0 or 1-10 if base score >= 22), and feedback (string with specific examples). NO OTHER TEXT OR FORMATTING IS ALLOWED IN YOUR RESPONSE.",
         messages: [{
           role: 'user',
@@ -118,6 +118,7 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
     try {
       // Try to extract JSON from the response text
       const text = result.content[0].text.trim();
+      // Use regex to find JSON object in the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.error("No JSON object found in response:", text);
