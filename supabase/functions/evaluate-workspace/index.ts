@@ -68,16 +68,6 @@ serve(async (req) => {
 - Point out any visible tracking or monitoring systems
 - List specific examples of good/poor practice maintenance
 
-IMPORTANT: You must respond with a valid JSON object containing exactly these fields:
-{
-  "sortScore": (a number between 1-10),
-  "setInOrderScore": (a number between 1-10),
-  "shineScore": (a number between 1-10),
-  "standardizeScore": (a number, must be 0 if base score < 22),
-  "sustainScore": (a number, must be 0 if base score < 22),
-  "feedback": "Detailed feedback with SPECIFIC examples from the photos for each category"
-}
-
 Base64 photo data: ${processedPhotos.join(' | ')}`;
 
     console.log("Sending request to Claude API...");
@@ -92,7 +82,7 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         max_tokens: 4096,
-        system: "You are a 5S workplace organization expert. You MUST respond with a valid JSON object containing exactly these fields: sortScore (1-10), setInOrderScore (1-10), shineScore (1-10), standardizeScore (0 or 1-10 if base score >= 22), sustainScore (0 or 1-10 if base score >= 22), and feedback (string with specific examples). NO OTHER TEXT OR FORMATTING IS ALLOWED IN YOUR RESPONSE.",
+        system: "You are a 5S workplace organization expert. Analyze the photos and return ONLY a JSON object with these exact fields: sortScore (integer 1-10), setInOrderScore (integer 1-10), shineScore (integer 1-10), standardizeScore (integer, must be 0 if base score < 22), sustainScore (integer, must be 0 if base score < 22), and feedback (string with specific examples). The response must be a single, valid JSON object with no additional text or formatting.",
         messages: [{
           role: 'user',
           content: prompt
@@ -114,19 +104,15 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       throw new Error('Invalid response format from Claude API');
     }
 
+    // Take only the first response from Claude
+    const text = result.content[0].text.trim();
+    console.log("Cleaned response text:", text);
+
     let evaluation;
     try {
-      // Try to extract JSON from the response text
-      const text = result.content[0].text.trim();
-      // Use regex to find JSON object in the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error("No JSON object found in response:", text);
-        throw new Error('No JSON object found in Claude response');
-      }
-      evaluation = JSON.parse(jsonMatch[0]);
+      evaluation = JSON.parse(text);
     } catch (parseError) {
-      console.error("Failed to parse Claude response as JSON:", result.content[0].text);
+      console.error("Failed to parse response as JSON:", text);
       throw new Error('Failed to parse evaluation result as JSON');
     }
 
@@ -172,7 +158,6 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
   } catch (error) {
     console.error("Function error:", error);
     
-    // Ensure we always return a JSON response, even for errors
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Failed to evaluate workspace',
