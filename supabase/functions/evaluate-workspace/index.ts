@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -19,7 +18,6 @@ serve(async (req) => {
       throw new Error('No photos provided or invalid photos format');
     }
 
-    // Process and validate photos - limit size by taking a smaller portion
     const processedPhotos = photos.slice(0, 4).map(photo => {
       if (typeof photo !== 'string') return '';
       return photo.substring(0, 10000);
@@ -36,37 +34,16 @@ serve(async (req) => {
       throw new Error('Missing ANTHROPIC_API_KEY');
     }
 
-    const prompt = `As a 5S workplace organization expert, analyze these workspace photos in detail. For each 5S principle, identify SPECIFIC items, locations, and conditions visible in the photos. Your evaluation should include:
+    const prompt = `As a 5S workplace organization expert, analyze these workspace photos and provide scores and feedback. Respond with ONLY a JSON object containing these exact fields:
 
-1. Sort (Seiri):
-- List specific unnecessary items you can see
-- Identify visible red-tag items or areas
-- Note any obvious redundant or obsolete equipment
-- Point out specific storage issues
-
-2. Set in Order (Seiton):
-- Describe specific examples of good/poor item placement
-- Note any visible labeling systems or their absence
-- Identify specific areas where items are well/poorly organized
-- Point out any shadow boards or visual management tools
-
-3. Shine (Seiso):
-- List specific areas or equipment that need cleaning
-- Note any visible maintenance issues
-- Identify specific cleanliness concerns
-- Point out any cleaning tools or schedules visible
-
-4. Standardize (Seiketsu):
-- Describe any visible standard procedures or instructions
-- Note specific examples of visual controls
-- Identify any visible audit or checklist systems
-- Point out specific areas showing consistent/inconsistent standards
-
-5. Sustain (Shitsuke):
-- Note any visible evidence of regular maintenance
-- Identify specific signs of continuous improvement
-- Point out any visible tracking or monitoring systems
-- List specific examples of good/poor practice maintenance
+{
+  "sortScore": (integer 1-10),
+  "setInOrderScore": (integer 1-10),
+  "shineScore": (integer 1-10),
+  "standardizeScore": (integer, must be 0 if base score < 22),
+  "sustainScore": (integer, must be 0 if base score < 22),
+  "feedback": "Detailed feedback string"
+}
 
 Base64 photo data: ${processedPhotos.join(' | ')}`;
 
@@ -82,7 +59,7 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         max_tokens: 4096,
-        system: "You are a 5S workplace organization expert. Analyze the photos and return ONLY a JSON object with these exact fields: sortScore (integer 1-10), setInOrderScore (integer 1-10), shineScore (integer 1-10), standardizeScore (integer, must be 0 if base score < 22), sustainScore (integer, must be 0 if base score < 22), and feedback (string with specific examples). The response must be a single, valid JSON object with no additional text or formatting.",
+        system: "You are a 5S workplace organization expert. You MUST respond with ONLY a single, valid JSON object containing exactly these fields: sortScore (integer 1-10), setInOrderScore (integer 1-10), shineScore (integer 1-10), standardizeScore (integer, must be 0 if base score < 22), sustainScore (integer, must be 0 if base score < 22), and feedback (string). NO OTHER TEXT OR FORMATTING IS ALLOWED.",
         messages: [{
           role: 'user',
           content: prompt
@@ -104,15 +81,21 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       throw new Error('Invalid response format from Claude API');
     }
 
-    // Take only the first response from Claude
     const text = result.content[0].text.trim();
-    console.log("Cleaned response text:", text);
+    console.log("Claude response text:", text);
+
+    // Try to extract JSON from the response text using regex
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("No JSON object found in response:", text);
+      throw new Error('No JSON object found in Claude response');
+    }
 
     let evaluation;
     try {
-      evaluation = JSON.parse(text);
+      evaluation = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      console.error("Failed to parse response as JSON:", text);
+      console.error("Failed to parse extracted JSON:", jsonMatch[0]);
       throw new Error('Failed to parse evaluation result as JSON');
     }
 
@@ -125,15 +108,13 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
       throw new Error(`Missing required fields in evaluation: ${missingFields.join(', ')}`);
     }
 
-    // Validate score types and ranges
+    // Validate and convert scores to integers
     const scores = ['sortScore', 'setInOrderScore', 'shineScore', 'standardizeScore', 'sustainScore'];
     for (const score of scores) {
-      if (typeof evaluation[score] !== 'number' || evaluation[score] < 0 || evaluation[score] > 10) {
-        console.error(`Invalid score for ${score}:`, evaluation[score]);
+      evaluation[score] = Math.round(Number(evaluation[score]));
+      if (isNaN(evaluation[score]) || evaluation[score] < 0 || evaluation[score] > 10) {
         throw new Error(`Invalid score for ${score}: must be a number between 0 and 10`);
       }
-      // Convert to integer if it's a float
-      evaluation[score] = Math.round(evaluation[score]);
     }
 
     // Enforce scoring rules
