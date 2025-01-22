@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -144,6 +145,8 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
         console.error(`Invalid score for ${score}:`, evaluation[score]);
         throw new Error(`Invalid score for ${score}: must be a number between 0 and 10`);
       }
+      // Convert to integer if it's a float
+      evaluation[score] = Math.round(evaluation[score]);
     }
 
     // Enforce scoring rules
@@ -157,17 +160,28 @@ Base64 photo data: ${processedPhotos.join(' | ')}`;
 
     return new Response(
       JSON.stringify(evaluation),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
+
   } catch (error) {
     console.error("Function error:", error);
+    
+    // Ensure we always return a JSON response, even for errors
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Failed to evaluate workspace',
         details: error.toString()
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }, 
         status: 500 
       }
     );
