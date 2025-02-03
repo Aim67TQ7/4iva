@@ -7,15 +7,39 @@ import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
+const IframeWrapper = ({ children }: { children: React.ReactNode }) => (
+  <div className="iframe-container">
+    <iframe srcDoc={`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { margin: 0; font-family: system-ui, sans-serif; }
+            .iframe-content { height: 100vh; overflow-y: auto; }
+          </style>
+        </head>
+        <body>
+          <div class="iframe-content">
+            ${children}
+          </div>
+        </body>
+      </html>
+    `}>
+    </iframe>
+  </div>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-        </Routes>
+        <IframeWrapper>
+          <Routes>
+            <Route path="/" element={<Index />} />
+          </Routes>
+        </IframeWrapper>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

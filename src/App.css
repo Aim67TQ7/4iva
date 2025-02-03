@@ -40,3 +40,16 @@
 .read-the-docs {
   color: #888;
 }
+
+.iframe-container {
+  width: 100%;
+  height: 100%;
+  border: none;
+  overflow: hidden;
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
